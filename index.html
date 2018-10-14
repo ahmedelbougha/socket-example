@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      div.form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      div.form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      div.form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { display: none; list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      #userinfo-div {
+        display: block;
+        vertical-align: middle;
+        text-align: center;
+        width: 500px;
+        height: 500px;
+        margin: auto;
+        padding: 250px 100px;
+      }
+      #userinfo-div p { margin: 30px; }
+      #chatting-div { display: none; }
+      #users-div { display: none; background: #61f5b1; right: 0; position: absolute; height: 100%; width: 200px; }
+      .username-div { border-bottom: solid 1px; padding: 3px; 0px; }
+    </style>
+  </head>
+  <body>
+    <div id="userinfo-div">
+      <p>Welcome to simple chatting, what is your name?</p>
+      <input type="text" id="name" />
+      <button id="enter-button">Enter</button>
+    </div>
+    <div id="users-div">
+      <h2 style="border: solid 1px">Online Users</h2>
+    </div>
+    <ul id="messages"></ul>
+    </div>
+    <div id="chatting-div">
+      <div class="form">
+        <div>
+          <input id="m" autocomplete="off" /><button id="send-button">Send</button>
+        </div>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var socket = io();
+        var username = "";
+
+        $('#enter-button').click(function() {
+          username = $('#name').val();
+          $('#userinfo-div').hide();
+          $('#chatting-div').show();
+          $('#users-div').show();
+          $('#messages').show();
+          socket.emit('user joined', username);
+        });
+
+        socket.on('user joined', function(data){
+          $('#messages').append($('<li>').text(data.username + " has joined"));
+          $('#users-div > [id^=user-]').remove();
+          $.each(data.usernameArray, function(index, user) {
+            $('#users-div').append($('<div id="user-'+ index +'" class="username-div">').text(user));
+          });
+
+        });
+
+        socket.on('login', function(data){
+          $.each(data.usernameArray, function(index, user) {
+            if ($('#user-' + index ).length === 0) {
+                $('#users-div').append($('<div id="user-'+ index +'" class="username-div">').text(user));
+            }
+          });
+
+        });
+
+        socket.on('user left', function(data){
+          $('#messages').append($('<li>').text(data.username + " has left"));
+          $('#user-' + data.id).remove();
+          });
+
+        $('div.form #send-button').click(function(){
+          socket.emit('chat message', $('#m').val());
+          $('#m').val('');
+          return false;
+        });
+
+        socket.on('chat message', function(msg){
+          $('#messages').append($('<li>').text(msg));
+        });
+      });
+    </script>
+  </body>
+</html>
